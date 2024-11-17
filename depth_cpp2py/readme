@@ -1,0 +1,8 @@
+mkdir build
+cd build
+cmake ..
+cmake --build . --config Release
+cd ..
+
+cp -r lib/orbbecsdk/lib/extensions build/bin/
+cp -r lib/orbbecsdk/lib/libOrbbecSDK.so build/bin/
