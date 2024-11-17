@@ -27,7 +27,7 @@ def socket_service_image():
         b1 = bytearray()
         recvd_size=0 
         t0 =time.time()
-        while not len(b1) == filesize: #必须保证完全接收
+        while not len(b1) == filesize: #锟斤拷锟诫保证锟斤拷全锟斤拷锟斤拷
             if filesize - recvd_size > 1024:
                 data = sock.recv(1024)
                 recvd_size += len(data)
@@ -37,7 +37,7 @@ def socket_service_image():
         print(len(b1))
         image = np.asarray(b1, dtype="uint8")
         image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-        cv2.imshow('',image)
+        cv2.imshow('python-Color',image)
         cv2.waitKey(1)
         print('Image recieved successfully!fps:'+str(1/(time.time()-t0)))
         sock.send('recieved messages!'.encode())      
