@@ -1,11 +1,3 @@
-#include <cstdlib>
-#include <iostream>
-#include <libobsensor/hpp/Error.hpp>
-#include <memory>
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netdb.h>
@@ -14,8 +6,14 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include <cstdlib>
 #include <iostream>
+#include <libobsensor/hpp/Error.hpp>
+#include <memory>
 #include <mutex>
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <thread>
@@ -23,6 +21,40 @@
 #include "utils.hpp"
 
 #include "camera.h"
+
+cv::Point clickedPoint;
+bool isClicked = false;
+
+void mouseCallback(int event, int x, int y, int flags, void *userdata) {
+    if (event == cv::EVENT_LBUTTONDOWN) {
+        clickedPoint.x = x;
+        clickedPoint.y = y;
+        isClicked = true;
+    }
+}
+
+void send_img(cv::Mat img, int &connfd) {
+    std::vector<uchar> data_encode;
+    cv::imencode(".png", img, data_encode);
+    std::cout << data_encode.size() << std::endl;
+    int len_encode = data_encode.size();
+    std::string len = std::to_string(len_encode);
+    int length = len.length();
+    for (int i = 0; i < 16 - length; i++) len = len + ' ';
+    // cout<<len.c_str()<<' '<<strlen(len.c_str())<<endl;
+    clock_t start = clock();
+
+    // 发送数据
+    send(connfd, len.c_str(), strlen(len.c_str()), 0);
+
+    std::string str_encode(data_encode.begin(), data_encode.end());
+    send(connfd, str_encode.data(), len_encode, 0);
+    clock_t end = clock();
+    // std::cout << end - start << '@' << CLOCKS_PER_SEC << std::endl;
+    // 接收返回信息
+    char recvBuf[32] = "";
+    // if (recv(connfd, recvBuf, 32, 0)) std::cout << recvBuf << std::endl;
+}
 
 int main(void) {
     try {
@@ -45,7 +77,6 @@ int main(void) {
         addr.sin_family = AF_INET;
         addr.sin_port = htons(servPort);
         addr.sin_addr.s_addr = inet_addr(servInetAddr);
-        std::vector<uchar> data_encode;
 
         // bind
         int res = connect(connfd, (struct sockaddr *)&addr, sizeof(addr));
@@ -55,41 +86,32 @@ int main(void) {
         }
         std::cout << "bind连接成功" << std::endl;
 
+        cv::namedWindow("cpp-Color");
+        cv::setMouseCallback("cpp-Color", mouseCallback, nullptr);
+        cv::Mat depth_img;
+        cv::Mat img;
+        cv::Mat ir_img;
         while (cv::waitKey(1) != 27) {  // ESC的ASCII码是27，按ESC键可以终止程序
             auto frame_set = camera.get();
             if (frame_set != nullptr) {
-                cv::Mat img = camera.frame2mat(frame_set->colorFrame());
-                if (!img.empty()) {
-                    cv::imencode(".jpg", img, data_encode);
-                    int len_encode = data_encode.size();
-                    std::string len = std::to_string(len_encode);
-                    int length = len.length();
-                    for (int i = 0; i < 16 - length; i++) len = len + ' ';
-                    // cout<<len.c_str()<<' '<<strlen(len.c_str())<<endl;
-                    clock_t start = clock();
-
-                    // 发送数据
-                    send(connfd, len.c_str(), strlen(len.c_str()), 0);
-
-                    std::string str_encode(data_encode.begin(),
-                                           data_encode.end());
-                    send(connfd, str_encode.data(), len_encode, 0);
-                    clock_t end = clock();
-                    std::cout << end - start << '@' << CLOCKS_PER_SEC
-                              << std::endl;
-                    // 接收返回信息
-                    char recvBuf[32] = "";
-                    if (recv(connfd, recvBuf, 32, 0))
-                        std::cout << recvBuf << std::endl;
+                img = camera.frame2mat(frame_set->colorFrame());
+                auto d_frame_ptr = frame_set->depthFrame();
+                depth_img = camera.frame2mat(d_frame_ptr);
+                if (!img.empty() && !depth_img.empty()) {
+                    // -------------网络传输图片------------
+                    send_img(img, connfd);
                     cv::imshow("cpp-Color", img);
-                }
-                img = camera.frame2mat(frame_set->depthFrame());
-                if (!img.empty()) {
-                    // cv::imshow("Depth", img);
-                }
-                img = camera.frame2mat(frame_set->irFrame());
-                if (!img.empty()) {
-                    // cv::imshow("IR", img);
+                    cv::imshow("cpp-Depth", depth_img);
+                    if (isClicked) {
+                        std::cout << "鼠标点击坐标: (" << clickedPoint.x << ", "
+                                  << clickedPoint.y << ")"
+                                  << " 距离: "
+                                  //   at.(i,j)指像素点的位置，表示第i行第j列。
+                                  << depth_img.at<ushort>(clickedPoint.y,
+                                                          clickedPoint.x)
+                                  << std::endl;
+                        isClicked = false;
+                    }
                 }
             }
         }
