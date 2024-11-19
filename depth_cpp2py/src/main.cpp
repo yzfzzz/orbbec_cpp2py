@@ -36,7 +36,7 @@ void mouseCallback(int event, int x, int y, int flags, void *userdata) {
 void send_img(cv::Mat img, int &connfd) {
     std::vector<uchar> data_encode;
     cv::imencode(".png", img, data_encode);
-    std::cout << data_encode.size() << std::endl;
+    // std::cout << data_encode.size() << std::endl;
     int len_encode = data_encode.size();
     std::string len = std::to_string(len_encode);
     int length = len.length();
@@ -58,7 +58,7 @@ void send_img(cv::Mat img, int &connfd) {
 
 int main(void) {
     try {
-        Camera camera(true, true, true);
+        Camera camera(true, true, true);    
         camera.start();
 
         // 定义socket信息
@@ -95,11 +95,11 @@ int main(void) {
             auto frame_set = camera.get();
             if (frame_set != nullptr) {
                 img = camera.frame2mat(frame_set->colorFrame());
-                auto d_frame_ptr = frame_set->depthFrame();
-                depth_img = camera.frame2mat(d_frame_ptr);
+                depth_img = camera.frame2mat(frame_set->depthFrame());
                 if (!img.empty() && !depth_img.empty()) {
                     // -------------网络传输图片------------
                     send_img(img, connfd);
+                    send_img(depth_img, connfd);
                     cv::imshow("cpp-Color", img);
                     cv::imshow("cpp-Depth", depth_img);
                     if (isClicked) {
@@ -107,7 +107,7 @@ int main(void) {
                                   << clickedPoint.y << ")"
                                   << " 距离: "
                                   //   at.(i,j)指像素点的位置，表示第i行第j列。
-                                  << depth_img.at<ushort>(clickedPoint.y,
+                                  << 64*depth_img.at<u_int8_t>(clickedPoint.y,
                                                           clickedPoint.x)
                                   << std::endl;
                         isClicked = false;

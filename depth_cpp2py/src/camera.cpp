@@ -162,12 +162,10 @@ cv::Mat Camera::frame2mat(const std::shared_ptr<ob::VideoFrame> &frame) {
                frame_format == OB_FORMAT_YUY2) {
         // IR or depth image
         cv::Mat raw_mat(frame_height, frame_width, CV_16UC1, frame_data);
-        // cv::imwrite("cv_raw_depth.png", raw_mat);
         const double scale =
             1 / pow(2, frame->pixelAvailableBitSize() -
                            (frame_type == OB_FRAME_DEPTH ? 10 : 8));
-        // cv::convertScaleAbs(raw_mat, result_mat, scale);
-        return raw_mat;
+        cv::convertScaleAbs(raw_mat, result_mat, scale);
         
     } else if (frame_type == OB_FRAME_IR) {
         // IR image
