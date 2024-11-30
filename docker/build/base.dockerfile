@@ -1,4 +1,4 @@
-# Ö¸¶¨»ù´¡¾µÏñ, ÔÚ¸Ã¾µÏñÉÏ¹¹½¨´úÂë
+# Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½, ï¿½Ú¸Ã¾ï¿½ï¿½ï¿½ï¿½Ï¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 FROM  ubuntu:18.04
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -54,15 +54,6 @@ RUN apt-get install -y build-essential \
 
 COPY opencv /tmp/opencv
 RUN ./tmp/opencv/install_opencv.sh
-
-# COPY install/cmake /tmp/install/cmake
-# RUN /tmp/install/cmake/install_cmake.sh
-
-# RUN apt-get install -y python3-pip
-# RUN pip3 install cuteci -i https://mirrors.aliyun.com/pypi/simple
-
-# COPY install/qt /tmp/install/qt
-# RUN /tmp/install/qt/install_qt.sh
 
 
 
